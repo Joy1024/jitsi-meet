@@ -24,6 +24,7 @@ import com.facebook.react.bridge.ReadableMap;
 import com.amplitude.api.Amplitude;
 import com.facebook.react.module.annotations.ReactModule;
 
+import org.jitsi.meet.sdk.log.JitsiMeetLogger;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -53,6 +54,17 @@ class AmplitudeModule
     }
 
     /**
+     * Sets the user ID for an Amplitude instance.
+     *
+     * @param instanceName The name of the Amplitude instance.
+     * @param userId The new value for the user ID.
+     */
+    @ReactMethod
+    public void setUserId(String instanceName, String userId) {
+            Amplitude.getInstance(instanceName).setUserId(userId);
+    }
+
+    /**
      * Sets the user properties for an Amplitude instance.
      *
      * @param instanceName The name of the Amplitude instance.
@@ -79,7 +91,7 @@ class AmplitudeModule
             JSONObject eventProps = new JSONObject(eventPropsString);
             Amplitude.getInstance(instanceName).logEvent(eventType, eventProps);
         } catch (JSONException e) {
-            e.printStackTrace();
+            JitsiMeetLogger.e(e, "Error logging event");
         }
     }
 

@@ -19,8 +19,7 @@ import {
     SET_LOCATION_URL
 } from './actionTypes';
 import { JITSI_CONNECTION_URL_KEY } from './constants';
-
-const logger = require('jitsi-meet-logger').getLogger(__filename);
+import logger from './logger';
 
 /**
  * The error structure passed to the {@link connectionFailed} action.
@@ -370,10 +369,7 @@ export function disconnect() {
         if (connection_) {
             promise = promise.then(() => connection_.disconnect());
         } else {
-            // FIXME: We have no connection! Fake a disconnect. Because of how the current disconnec is implemented
-            // (by doing the diconnect() in the Conference component unmount) we have lost the location URL already.
-            // Oh well, at least send the event.
-            promise.then(() => dispatch(_connectionDisconnected({}, '')));
+            logger.info('No connection found while disconnecting.');
         }
 
         return promise;

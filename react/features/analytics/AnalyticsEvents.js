@@ -272,6 +272,39 @@ export function createInviteDialogEvent(
 }
 
 /**
+ * Creates an event which reports about the current network information reported by the operating system.
+ *
+ * @param {boolean} isOnline - Tells whether or not the internet is reachable.
+ * @param {string} [networkType] - Network type, see {@code NetworkInfo} type defined by the 'base/net-info' feature.
+ * @param {Object} [details] - Extra info, see {@code NetworkInfo} type defined by the 'base/net-info' feature.
+ * @returns {Object}
+ */
+export function createNetworkInfoEvent({ isOnline, networkType, details }) {
+    const attributes = { isOnline };
+
+    // Do no include optional stuff or Amplitude handler will log warnings.
+    networkType && (attributes.networkType = networkType);
+    details && (attributes.details = details);
+
+    return {
+        action: 'network.info',
+        attributes
+    };
+}
+
+/**
+ * Creates an "offer/answer failure" event.
+ *
+ * @returns {Object} The event in a format suitable for sending via
+ * sendAnalytics.
+ */
+export function createOfferAnswerFailedEvent() {
+    return {
+        action: 'offer.answer.failure'
+    };
+}
+
+/**
  * Creates a "page reload" event.
  *
  * @param {string} reason - The reason for the reload.
@@ -373,6 +406,28 @@ export function createLiveStreamingDialogEvent(dialogName, buttonName) {
 }
 
 /**
+ * Creates an event with the local tracks duration.
+ *
+ * @param {Object} duration - The object with the duration of the local tracks.
+ * @returns {Object} The event in a format suitable for sending via
+ * sendAnalytics.
+ */
+export function createLocalTracksDurationEvent(duration) {
+    const { audio, video, conference } = duration;
+    const { camera, desktop } = video;
+
+    return {
+        action: 'local.tracks.durations',
+        attributes: {
+            audio: audio.value,
+            camera: camera.value,
+            conference: conference.value,
+            desktop: desktop.value
+        }
+    };
+}
+
+/**
  * Creates an event which indicates that an action related to recording has
  * occured.
  *
@@ -389,6 +444,25 @@ export function createRecordingEvent(action, type, value) {
         actionSubject: `recording.${type}`,
         attributes: {
             value
+        }
+    };
+}
+
+/**
+ * Creates an event which indicates that the same conference has been rejoined.
+ *
+ * @param {string} url - The full conference URL.
+ * @param {number} lastConferenceDuration - How many seconds user stayed in the previous conference.
+ * @param {number} timeSinceLeft - How many seconds since the last conference was left.
+ * @returns {Object} The event in a format suitable for sending via sendAnalytics.
+ */
+export function createRejoinedEvent({ url, lastConferenceDuration, timeSinceLeft }) {
+    return {
+        action: 'rejoined',
+        attributes: {
+            lastConferenceDuration,
+            timeSinceLeft,
+            url
         }
     };
 }
@@ -430,6 +504,21 @@ export function createRemoteVideoMenuButtonEvent(buttonName, attributes) {
         attributes,
         source: 'remote.video.menu',
         type: TYPE_UI
+    };
+}
+
+/**
+ * Creates an event indicating that an action related to video blur
+ * occurred (e.g. It was started or stopped).
+ *
+ * @param {string} action - The action which occurred.
+ * @returns {Object} The event in a format suitable for sending via
+ * sendAnalytics.
+ */
+export function createVideoBlurEvent(action) {
+    return {
+        action,
+        actionSubject: 'video.blur'
     };
 }
 
@@ -526,6 +615,18 @@ export function createStartAudioOnlyEvent(audioOnly) {
         attributes: {
             enabled: audioOnly
         }
+    };
+}
+
+/**
+ * Creates an event which indicates the "start silent" configuration.
+ *
+ * @returns {Object} The event in a format suitable for sending via
+ * sendAnalytics.
+ */
+export function createStartSilentEvent() {
+    return {
+        action: 'start.silent'
     };
 }
 

@@ -6,14 +6,17 @@ import '../../analytics';
 import '../../authentication';
 import { setColorScheme } from '../../base/color-scheme';
 import { DialogContainer } from '../../base/dialog';
+import { updateFlags } from '../../base/flags';
 import '../../base/jwt';
 import { Platform } from '../../base/react';
 import {
     AspectRatioDetector,
     ReducedUIDetector
 } from '../../base/responsive-ui';
+import { updateSettings } from '../../base/settings';
 import '../../google-api';
 import '../../mobile/audio-mode';
+import '../../mobile/back-button';
 import '../../mobile/background';
 import '../../mobile/call-integration';
 import '../../mobile/external-api';
@@ -24,12 +27,11 @@ import '../../mobile/proximity';
 import '../../mobile/wake-lock';
 import '../../mobile/watchos';
 
+import logger from '../logger';
 import { AbstractApp } from './AbstractApp';
 import type { Props as AbstractAppProps } from './AbstractApp';
 
 declare var __DEV__;
-
-const logger = require('jitsi-meet-logger').getLogger(__filename);
 
 /**
  * The type of React {@code Component} props of {@link App}.
@@ -47,18 +49,14 @@ type Props = AbstractAppProps & {
     externalAPIScope: string,
 
     /**
-     * Whether Picture-in-Picture is enabled. If {@code true}, a toolbar button
-     * is rendered in the {@link Conference} view to afford entering
-     * Picture-in-Picture.
+     * An object with the feature flags.
      */
-    pictureInPictureEnabled: boolean,
+    flags: Object,
 
     /**
-     * Whether the Welcome page is enabled. If {@code true}, the Welcome page is
-     * rendered when the {@link App} is not at a location (URL) identifying
-     * a Jitsi Meet conference/room.
+     * An object with user information (display name, email, avatar URL).
      */
-    welcomePageEnabled: boolean
+    userInfo: ?Object
 };
 
 /**
@@ -96,9 +94,12 @@ export class App extends AbstractApp {
         super.componentDidMount();
 
         this._init.then(() => {
-            // We set the color scheme early enough so then we avoid any
-            // unnecessary re-renders.
-            this.state.store.dispatch(setColorScheme(this.props.colorScheme));
+            // We set these early enough so then we avoid any unnecessary re-renders.
+            const { dispatch } = this.state.store;
+
+            dispatch(setColorScheme(this.props.colorScheme));
+            dispatch(updateFlags(this.props.flags));
+            dispatch(updateSettings(this.props.userInfo || {}));
         });
     }
 

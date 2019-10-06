@@ -80,6 +80,7 @@ class WelcomePage extends AbstractWelcomePage {
      */
     componentDidMount() {
         document.body.classList.add('welcome-page');
+        document.title = interfaceConfig.APP_NAME;
 
         if (this.state.generateRoomnames) {
             this._updateRoomname();
@@ -148,8 +149,9 @@ class WelcomePage extends AbstractWelcomePage {
                                     className = 'enter-room-input'
                                     id = 'enter_room_field'
                                     onChange = { this._onRoomChange }
-                                    placeholder
-                                        = { this.state.roomPlaceholder }
+                                    pattern = '^[a-zA-Z0-9=\?]+$'
+                                    placeholder = { this.state.roomPlaceholder }
+                                    title = { t('welcomepage.onlyAsciiAllowed') }
                                     type = 'text'
                                     value = { this.state.room } />
                             </form>
@@ -225,11 +227,11 @@ class WelcomePage extends AbstractWelcomePage {
             return null;
         }
 
-        const { t } = this.props;
+        const { _calendarEnabled, t } = this.props;
 
         const tabs = [];
 
-        if (CalendarList) {
+        if (_calendarEnabled) {
             tabs.push({
                 label: t('welcomepage.calendar'),
                 content: <CalendarList />

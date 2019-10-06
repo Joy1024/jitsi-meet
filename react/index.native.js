@@ -16,6 +16,11 @@ import { AppRegistry } from 'react-native';
 import { App } from './features/app';
 import { IncomingCallApp } from './features/mobile/incoming-call';
 
+// It's crucial that the native loggers are created ASAP, not to lose any data.
+import { _initLogging } from './features/base/logging/functions';
+
+declare var __DEV__;
+
 /**
  * The type of the React {@code Component} props of {@link Root}.
  */
@@ -48,6 +53,29 @@ class Root extends PureComponent<Props> {
         );
     }
 }
+
+// Initialize logging.
+_initLogging();
+
+// HORRIBLE HACK ALERT! React Native logs the initial props with `console.log`. Here we are quickly patching it
+// to avoid logging potentially sensitive information.
+if (!__DEV__) {
+    /* eslint-disable */
+
+    const __orig_console_log = console.log;
+    const __orig_appregistry_runapplication = AppRegistry.runApplication;
+
+    AppRegistry.runApplication = (...args) => {
+        // $FlowExpectedError
+        console.log = () => {};
+        __orig_appregistry_runapplication(...args);
+        // $FlowExpectedError
+        console.log = __orig_console_log;
+    };
+
+    /* eslint-enable */
+}
+
 
 // Register the main/root Component of JitsiMeetView.
 AppRegistry.registerComponent('App', () => Root);

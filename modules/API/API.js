@@ -5,9 +5,14 @@ import {
     createApiEvent,
     sendAnalytics
 } from '../../react/features/analytics';
-import { setSubject } from '../../react/features/base/conference';
+import {
+    sendTones,
+    setPassword,
+    setSubject
+} from '../../react/features/base/conference';
 import { parseJWTFromURLParams } from '../../react/features/base/jwt';
 import { invite } from '../../react/features/invite';
+import { toggleTileView } from '../../react/features/video-layout';
 import { getJitsiMeetTransport } from '../transport';
 
 import { API_ID } from './constants';
@@ -64,8 +69,35 @@ function initCommands() {
             sendAnalytics(createApiEvent('display.name.changed'));
             APP.conference.changeLocalDisplayName(displayName);
         },
+        'password': password => {
+            const { conference, passwordRequired }
+                = APP.store.getState()['features/base/conference'];
+
+            if (passwordRequired) {
+                sendAnalytics(createApiEvent('submit.password'));
+
+                APP.store.dispatch(setPassword(
+                    passwordRequired,
+                    passwordRequired.join,
+                    password
+                ));
+            } else {
+                sendAnalytics(createApiEvent('password.changed'));
+
+                APP.store.dispatch(setPassword(
+                    conference,
+                    conference.lock,
+                    password
+                ));
+            }
+        },
         'proxy-connection-event': event => {
             APP.conference.onProxyConnectionEvent(event);
+        },
+        'send-tones': (options = {}) => {
+            const { duration, tones, pause } = options;
+
+            APP.store.dispatch(sendTones(tones, duration, pause));
         },
         'subject': subject => {
             sendAnalytics(createApiEvent('subject.changed'));
@@ -93,13 +125,28 @@ function initCommands() {
             sendAnalytics(createApiEvent('chat.toggled'));
             APP.UI.toggleChat();
         },
-        'toggle-share-screen': () => {
+
+        /**
+         * Callback to invoke when the "toggle-share-screen" command is received.
+         *
+         * @param {Object} options - Additional details of how to perform
+         * the action. Note this parameter is undocumented and experimental.
+         * @param {boolean} options.enable - Whether trying to enable screen
+         * sharing or to turn it off.
+         * @returns {void}
+         */
+        'toggle-share-screen': (options = {}) => {
             sendAnalytics(createApiEvent('screen.sharing.toggled'));
-            toggleScreenSharing();
+            toggleScreenSharing(options.enable);
         },
-        'video-hangup': () => {
+        'toggle-tile-view': () => {
+            sendAnalytics(createApiEvent('tile-view.toggled'));
+
+            APP.store.dispatch(toggleTileView());
+        },
+        'video-hangup': (showFeedbackDialog = true) => {
             sendAnalytics(createApiEvent('video.hangup'));
-            APP.conference.hangup(true);
+            APP.conference.hangup(showFeedbackDialog);
         },
         'email': email => {
             sendAnalytics(createApiEvent('email.changed'));
@@ -214,13 +261,17 @@ function shouldBeEnabled() {
 /**
  * Executes on toggle-share-screen command.
  *
+ * @param {boolean} [enable] - Whether this toggle is to explicitly enable or
+ * disable screensharing. If not defined, the application will automatically
+ * attempt to toggle between enabled and disabled. This boolean is useful for
+ * explicitly setting desired screensharing state.
  * @returns {void}
  */
-function toggleScreenSharing() {
+function toggleScreenSharing(enable) {
     if (APP.conference.isDesktopSharingEnabled) {
 
         // eslint-disable-next-line no-empty-function
-        APP.conference.toggleScreenSharing().catch(() => {});
+        APP.conference.toggleScreenSharing(enable).catch(() => {});
     } else {
         initialScreenSharingState = !initialScreenSharingState;
     }
@@ -482,6 +533,15 @@ class API {
     }
 
     /**
+     * Notify external application (if API is enabled) that a suspend event in host computer.
+     *
+     * @returns {void}
+     */
+    notifySuspendDetected() {
+        this._sendEvent({ name: 'suspend-detected' });
+    }
+
+    /**
      * Notify external application (if API is enabled) for audio muted status
      * changed.
      *
@@ -554,14 +614,50 @@ class API {
     }
 
     /**
+     * Notify external application of an unexpected camera-related error having
+     * occurred.
+     *
+     * @param {string} type - The type of the camera error.
+     * @param {string} message - Additional information about the error.
+     * @returns {void}
+     */
+    notifyOnCameraError(type: string, message: string) {
+        this._sendEvent({
+            name: 'camera-error',
+            type,
+            message
+        });
+    }
+
+    /**
+     * Notify external application of an unexpected mic-related error having
+     * occurred.
+     *
+     * @param {string} type - The type of the mic error.
+     * @param {string} message - Additional information about the error.
+     * @returns {void}
+     */
+    notifyOnMicError(type: string, message: string) {
+        this._sendEvent({
+            name: 'mic-error',
+            type,
+            message
+        });
+    }
+
+    /**
      * Notify external application (if API is enabled) that conference feedback
      * has been submitted. Intended to be used in conjunction with the
      * submit-feedback command to get notified if feedback was submitted.
      *
+     * @param {string} error - A failure message, if any.
      * @returns {void}
      */
-    notifyFeedbackSubmitted() {
-        this._sendEvent({ name: 'feedback-submitted' });
+    notifyFeedbackSubmitted(error: string) {
+        this._sendEvent({
+            name: 'feedback-submitted',
+            error
+        });
     }
 
     /**
@@ -590,6 +686,34 @@ class API {
     }
 
     /**
+     * Notify external application of a participant, remote or local, being
+     * removed from the conference by another participant.
+     *
+     * @param {string} kicked - The ID of the participant removed from the
+     * conference.
+     * @param {string} kicker - The ID of the participant that removed the
+     * other participant.
+     * @returns {void}
+     */
+    notifyKickedOut(kicked: Object, kicker: Object) {
+        this._sendEvent({
+            name: 'participant-kicked-out',
+            kicked,
+            kicker
+        });
+    }
+
+    /**
+     * Notify external application of the current meeting requiring a password
+     * to join.
+     *
+     * @returns {void}
+     */
+    notifyOnPasswordRequired() {
+        this._sendEvent({ name: 'password-required' });
+    }
+
+    /**
      * Notify external application (if API is enabled) that the screen sharing
      * has been turned on/off.
      *
@@ -609,6 +733,20 @@ class API {
     }
 
     /**
+     * Notify external application (if API is enabled) that the dominant speaker
+     * has been turned on/off.
+     *
+     * @param {string} id - Id of the dominant participant.
+     * @returns {void}
+     */
+    notifyDominantSpeakerChanged(id: string) {
+        this._sendEvent({
+            name: 'dominant-speaker-changed',
+            id
+        });
+    }
+
+    /**
      * Notify external application (if API is enabled) that the conference
      * changed their subject.
      *
@@ -619,6 +757,21 @@ class API {
         this._sendEvent({
             name: 'subject-change',
             subject
+        });
+    }
+
+    /**
+     * Notify external application (if API is enabled) that tile view has been
+     * entered or exited.
+     *
+     * @param {string} enabled - True if tile view is currently displayed, false
+     * otherwise.
+     * @returns {void}
+     */
+    notifyTileViewChanged(enabled: boolean) {
+        this._sendEvent({
+            name: 'tile-view-changed',
+            enabled
         });
     }
 

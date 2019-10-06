@@ -13,9 +13,9 @@ export default class AmplitudeHandler extends AbstractHandler {
      * by the Amplitude API.
      */
     constructor(options) {
-        super();
+        super(options);
 
-        const { amplitudeAPPKey, host } = options;
+        const { amplitudeAPPKey, host, user } = options;
 
         if (!amplitudeAPPKey) {
             throw new Error('Failed to initialize Amplitude handler, no APP key');
@@ -28,6 +28,10 @@ export default class AmplitudeHandler extends AbstractHandler {
         };
 
         amplitude.getInstance(this._amplitudeOptions).init(amplitudeAPPKey);
+
+        if (user) {
+            amplitude.getInstance(this._amplitudeOptions).setUserId(user);
+        }
     }
 
     /**

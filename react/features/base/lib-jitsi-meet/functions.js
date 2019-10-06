@@ -4,13 +4,12 @@ import { toState } from '../redux';
 import { loadScript } from '../util';
 
 import JitsiMeetJS from './_';
+import logger from './logger';
 
 declare var APP: Object;
 
 const JitsiConferenceErrors = JitsiMeetJS.errors.conference;
 const JitsiConnectionErrors = JitsiMeetJS.errors.connection;
-
-const logger = require('jitsi-meet-logger').getLogger(__filename);
 
 /**
  * Creates a {@link JitsiLocalTrack} model from the given device id.
@@ -43,7 +42,9 @@ export function createLocalTrack(type: string, deviceId: string) {
  * otherwise.
  */
 export function isAnalyticsEnabled(stateful: Function | Object) {
-    return !toState(stateful)['features/base/config'].disableThirdPartyRequests;
+    const { disableThirdPartyRequests, analytics = {} } = toState(stateful)['features/base/config'];
+
+    return !disableThirdPartyRequests && !analytics.disabled;
 }
 
 /**
@@ -68,6 +69,7 @@ export function isFatalJitsiConferenceError(error: Object | string) {
     return (
         error === JitsiConferenceErrors.FOCUS_DISCONNECTED
             || error === JitsiConferenceErrors.FOCUS_LEFT
+            || error === JitsiConferenceErrors.OFFER_ANSWER_FAILED
             || error === JitsiConferenceErrors.VIDEOBRIDGE_NOT_AVAILABLE);
 }
 

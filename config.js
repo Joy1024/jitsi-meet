@@ -90,6 +90,10 @@ var config = {
     // applied locally. FIXME: having these 2 options is confusing.
     // startWithAudioMuted: false,
 
+    // Enabling it (with #params) will disable local audio output of remote
+    // participants and to enable it back a reload is needed.
+    // startSilent: false
+
     // Video
 
     // Sets the preferred resolution (height) for local video. Defaults to 720.
@@ -118,10 +122,6 @@ var config = {
     // layers are not in use will be suspended (no longer sent) until they
     // are requested again.
     // enableLayerSuspension: false,
-
-    // Suspend sending video if bandwidth estimation is too low. This may cause
-    // problems with audio playback. Disabled until these are fixed.
-    disableSuspendVideo: true,
 
     // Every participant after the Nth will start video muted.
     // startVideoMuted: 10,
@@ -197,6 +197,9 @@ var config = {
     // subtitles and buttons can be configured)
     // transcribingEnabled: false,
 
+    // Enables automatic turning on captions when recording is started
+    // autoCaptionOnRecord: false,
+
     // Misc
 
     // Default value for the channel "last N" attribute. -1 for unlimited.
@@ -268,6 +271,10 @@ var config = {
 
     // Enable lock room for all moderators, even when userRolesBasedOnToken is enabled and participants are guests.
     // lockRoomGuestEnabled: false,
+
+    // When enabled the password used for locking a room is restricted to up to the number of digits specified
+    // roomPasswordNumberOfDigits: 10,
+    // default: roomPasswordNumberOfDigits: false,
 
     // Message to show the users. Example: 'The service will be down for
     // maintenance at 01:00 AM GMT,
@@ -410,6 +417,14 @@ var config = {
     // use only.
     // _desktopSharingSourceDevice: 'sample-id-or-label'
 
+    // If true, any checks to handoff to another application will be prevented
+    // and instead the app will continue to display in the current browser.
+    // disableDeepLinking: false
+
+    // A property to disable the right click context menu for localVideo
+    // the menu has option to flip the locally seen video for local presentations
+    // disableLocalVideoFlip: false
+
     // List of undocumented settings used in jitsi-meet
     /**
      _immediateReloadThreshold
@@ -424,7 +439,6 @@ var config = {
      dialOutCodesUrl
      disableRemoteControl
      displayJids
-     enableLocalVideoFlip
      etherpad_base
      externalConnectUrl
      firefox_fake_device

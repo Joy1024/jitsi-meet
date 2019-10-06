@@ -89,7 +89,6 @@ function RemoteVideo(user, VideoLayout, emitter) {
     this._stopRemoteControl = this._stopRemoteControl.bind(this);
 
     this.container.onclick = this._onContainerClick;
-    this.container.ondblclick = this._onContainerDoubleClick;
 }
 
 RemoteVideo.prototype = Object.create(SmallVideo.prototype);
@@ -165,7 +164,10 @@ RemoteVideo.prototype._generatePopupContent = function() {
 
     const initialVolumeValue
         = this._audioStreamElement && this._audioStreamElement.volume;
-    const onVolumeChange = this._setAudioVolume;
+
+    // hide volume when in silent mode
+    const onVolumeChange = APP.store.getState()['features/base/config'].startSilent
+        ? undefined : this._setAudioVolume;
     const { isModerator } = APP.conference;
     const participantID = this.id;
 
@@ -357,6 +359,11 @@ RemoteVideo.prototype.removeRemoteStreamElement = function(stream) {
     logger.info(`${isVideo ? 'Video' : 'Audio'
     } removed ${this.id}`, select);
 
+
+    if (stream === this.videoStream) {
+        this.videoStream = null;
+    }
+
     this.updateView();
 };
 
@@ -479,6 +486,8 @@ RemoteVideo.prototype.hasVideoStarted = function() {
 
 RemoteVideo.prototype.addRemoteStreamElement = function(stream) {
     if (!this.container) {
+        logger.debug('Not attaching remote stream due to no container');
+
         return;
     }
 
@@ -491,6 +500,8 @@ RemoteVideo.prototype.addRemoteStreamElement = function(stream) {
     }
 
     if (!stream.getOriginalStream()) {
+        logger.debug('Remote video stream has no original stream');
+
         return;
     }
 
